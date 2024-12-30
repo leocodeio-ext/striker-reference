@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "keeru"
+version = "0.1.0"
+description = "keeru is a bot"
+authors = ["Leocodeio <basicleo787@gmail.com>"]
+readme = "README.md"
+package-mode=false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+asyncio = "^3.4.3"
+pyaudio = "^0.2.14"
+websockets = "^14.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

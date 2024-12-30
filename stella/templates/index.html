@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stella Assistant</title>
+    <link rel="stylesheet" href="/static/css/index.css">
+    <link rel="shortcut icon" href="/static/images/stella.png" type="image/x-icon">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="{{profile_pic}}" alt="" srcset="">
+            Stella
+        </div>
+        <div class="chat-history" id="chat-history"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            function appendMessage(content, className) {
+                $('#chat-history').append(
+                    `<div class="message ${className}">${content}</div>`
+                );
+                $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
+            }
+
+            function processMessage(entry) {
+                if (entry.startsWith('user command:')) {
+                    return {
+                        content: entry.replace('user command:', '').trim(),
+                        className: 'user'
+                    };
+                } else if (entry.startsWith('response:')) {
+                    return {
+                        content: entry.replace('response:', '').trim(),
+                        className: 'stella'
+                    };
+                }
+                return null;
+            }
+
+            function loadChatHistory() {
+                $.get('/conversation_history', function(data) {
+                    $('#chat-history').empty();
+                    data.forEach(function(entry) {
+                        const message = processMessage(entry);
+                        if (message) {
+                            appendMessage(message.content, message.className);
+                        }
+                    });
+                });
+            }
+
+            function sendMessage(message) {
+                appendMessage(message, 'user');
+                disableInput();
+                showTypingIndicator();
+
+                $.ajax({
+                    type: 'POST',
+                    url: '/send_message',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ message: message }),
+                    success: function(response) {
+                        hideTypingIndicator();
+                        appendMessage(response.response.replace('response:', '').trim(), 'stella');
+                        enableInput();
+                    },
+                    error: function() {
+                        hideTypingIndicator();
+                        enableInput();
+                        alert('Failed to send message. Please try again.');
+                    }
+                });
+            }
+
+            function showTypingIndicator() {
+                $('#chat-history').append(
+                    `<div class="message stella typing-indicator">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                    </div>`
+                );
+                $('#chat-history').scrollTop($('#chat-history')[0].scrollHeight);
+            }
+
+            function hideTypingIndicator() {
+                $('.typing-indicator').remove();
+            }
+
+            function disableInput() {
+                $('#user-input').prop('disabled', true);
+                $('#send-button').prop('disabled', true);
+            }
+
+            function enableInput() {
+                $('#user-input').prop('disabled', false);
+                $('#send-button').prop('disabled', false);
+                $('#user-input').focus();
+            }
+
+            $('#send-button').click(function() {
+                const userInput = $('#user-input').val().trim();
+                if (userInput) {
+                    sendMessage(userInput);
+                    $('#user-input').val('');
+                }
+            });
+
+            $('#user-input').keypress(function(e) {
+                if (e.which === 13) {
+                    $('#send-button').click();
+                }
+            });
+
+            loadChatHistory();
+        });
+    </script>
+</body>
+</html>
